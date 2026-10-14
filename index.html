@@ -38,17 +38,44 @@ input{width:100%;padding:9px;border:1px solid var(--line);border-radius:8px;back
 button.go{width:100%;padding:9px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-weight:700;cursor:pointer}
 .foot{color:var(--muted);font-size:.74rem;margin-top:12px}
 .load{color:var(--muted);font-size:.85rem;padding:16px 0}
+.hdr{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+button.add{padding:9px 14px;border:none;border-radius:8px;background:var(--ok);color:#fff;font-weight:700;font-size:.85rem;cursor:pointer;white-space:nowrap}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-start;justify-content:center;padding:24px 16px;z-index:20;overflow-y:auto}
+.modal{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px;max-width:440px;width:100%;margin-top:20px}
+.modal h2{font-size:1.05rem;margin:0 0 2px}
+.modal .ms{color:var(--muted);font-size:.8rem;margin-bottom:12px}
+.fld{margin-bottom:10px}
+.fld label{display:block;font-size:.74rem;font-weight:700;color:var(--muted);margin-bottom:3px}
+.fld .hint{font-weight:400;color:var(--muted);font-size:.68rem}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mbtns{display:flex;gap:8px;margin-top:6px}
+.mbtns button{flex:1;padding:10px;border-radius:8px;font-weight:700;cursor:pointer;border:1px solid var(--line)}
+.mbtns .save{background:var(--accent);color:#fff;border-color:var(--accent)}
+.mbtns .cancel{background:var(--surface);color:var(--fg)}
+#amsg{font-size:.8rem;margin-top:8px}
 </style>
 </head>
 <body>
 <div class="gate" id="gate"><div class="box"><h1>Monitor de Fornecedores</h1><p class="sub">Acesso do time 123Play</p><input id="pw" type="password" placeholder="senha"><button class="go" id="go">Entrar</button><div id="err" style="color:var(--crit);font-size:.8rem;margin-top:6px"></div></div></div>
 <div class="wrap" id="app" hidden>
-<h1>Monitor de Fornecedores</h1><div class="sub">Preços do Walmart buscados automaticamente todo dia.</div>
+<div class="hdr"><div><h1>Monitor de Fornecedores</h1><div class="sub">Preços do Walmart buscados automaticamente todo dia.</div></div><button class="add" id="btn-add">+ Cadastrar produto</button></div>
 <div class="tiles"><div class="tile"><div class="n" id="t-total">-</div><div class="l">Produtos</div></div><div class="tile"><div class="n" id="t-ok">-</div><div class="l">OK</div></div><div class="tile"><div class="n" id="t-warn">-</div><div class="l">Atencao</div></div><div class="tile"><div class="n" id="t-crit">-</div><div class="l">Critico</div></div></div>
 <div class="tabs"><button class="tab" id="tab-all" data-t="all">Todos</button><button class="tab" id="tab-in" data-t="in">Em estoque</button><button class="tab" id="tab-out" data-t="out">Fora de estoque</button></div>
 <div class="tw"><table><thead><tr><th>Produto</th><th class="num">Venda</th><th class="num">Custo Walmart</th><th class="num">Lucro</th><th class="num">Margem</th><th>Estoque</th><th>Decisao</th><th>Checado</th></tr></thead><tbody id="rows"><tr><td colspan="8" class="load">Carregando dados ao vivo...</td></tr></tbody></table></div>
 <div class="foot" id="foot"></div>
 </div>
+<div class="ov" id="ov" hidden><div class="modal">
+<h2>Cadastrar produto</h2><div class="ms">O robô busca o preço no Walmart na hora e passa a vigiar todo dia.</div>
+<div class="fld"><label>Nome do produto</label><input id="f-name" placeholder="Ex: Air Fryer 6qt"></div>
+<div class="fld"><label>Link do fornecedor (Walmart) <span class="hint">cole o link do produto</span></label><input id="f-sup" placeholder="https://www.walmart.com/ip/.../16101019328"></div>
+<div class="fld"><label>SKU na Amazon <span class="hint">(opcional)</span></label><input id="f-sku" placeholder="AF6Q-GEN-PARENT"></div>
+<div class="row2"><div class="fld"><label>Preço de venda (Amazon)</label><input id="f-sell" type="number" step="0.01" placeholder="109.00"></div>
+<div class="fld"><label>Custo (fornecedor)</label><input id="f-cost" type="number" step="0.01" placeholder="59.00"></div></div>
+<div class="row2"><div class="fld"><label>Frete FBM <span class="hint">(opcional, padrão 11)</span></label><input id="f-ship" type="number" step="0.01" placeholder="11"></div>
+<div class="fld"><label>Teto de mercado <span class="hint">(opcional)</span></label><input id="f-bb" type="number" step="0.01" placeholder="125"></div></div>
+<div id="amsg"></div>
+<div class="mbtns"><button class="cancel" id="f-cancel">Cancelar</button><button class="save" id="f-save">Cadastrar</button></div>
+</div></div>
 <script>
 var API='https://wimfpytgnokyjtomhmlz.supabase.co/functions/v1/products-json';
 var DATA=[];
@@ -91,6 +118,32 @@ try{if(sessionStorage.getItem('mf')==='1')unlock()}catch(e){}
 document.getElementById('go').onclick=function(){if(document.getElementById('pw').value==='123play'){try{sessionStorage.setItem('mf','1')}catch(e){}unlock()}else{document.getElementById('err').textContent='Senha incorreta.'}};
 document.getElementById('pw').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('go').click()});
 setInterval(function(){if(!document.getElementById('app').hidden)load()},300000);
+var ADD='https://wimfpytgnokyjtomhmlz.supabase.co/functions/v1/add-product';
+function openAdd(){document.getElementById('amsg').textContent='';document.getElementById('ov').hidden=false;}
+function closeAdd(){document.getElementById('ov').hidden=true;}
+document.getElementById('btn-add').onclick=openAdd;
+document.getElementById('f-cancel').onclick=closeAdd;
+document.getElementById('ov').addEventListener('click',function(e){if(e.target.id==='ov')closeAdd()});
+document.getElementById('f-save').onclick=function(){
+ var msg=document.getElementById('amsg');
+ var payload={pass:'123play',
+  name:document.getElementById('f-name').value.trim(),
+  supplier_url:document.getElementById('f-sup').value.trim(),
+  amazon_sku:document.getElementById('f-sku').value.trim(),
+  amazon_price:document.getElementById('f-sell').value,
+  supplier_price:document.getElementById('f-cost').value,
+  ship:document.getElementById('f-ship').value,
+  bb_max:document.getElementById('f-bb').value};
+ if(!payload.name||!payload.supplier_url||!payload.amazon_price||!payload.supplier_price){msg.style.color='var(--crit)';msg.textContent='Preencha nome, link do fornecedor, preço de venda e custo.';return;}
+ var btn=document.getElementById('f-save');btn.disabled=true;btn.textContent='Buscando no Walmart...';msg.style.color='var(--muted)';msg.textContent='';
+ fetch(ADD,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).then(function(r){return r.json()}).then(function(j){
+  btn.disabled=false;btn.textContent='Cadastrar';
+  if(j&&j.ok){msg.style.color='var(--ok)';msg.textContent='Cadastrado! '+j.name+' — '+(j.in_stock?'em estoque':'SEM estoque')+', lucro $'+j.profit+' ('+j.decision+').';
+   ['f-name','f-sup','f-sku','f-sell','f-cost','f-ship','f-bb'].forEach(function(id){document.getElementById(id).value=''});
+   load();setTimeout(closeAdd,1600);}
+  else{msg.style.color='var(--crit)';msg.textContent='Erro: '+((j&&j.error)||'tente de novo');}
+ }).catch(function(){btn.disabled=false;btn.textContent='Cadastrar';msg.style.color='var(--crit)';msg.textContent='Erro de conexão. Tente de novo.';});
+};
 </script>
 </body>
 </html>
