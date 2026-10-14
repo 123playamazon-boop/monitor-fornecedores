@@ -53,6 +53,8 @@ button.add{padding:9px 14px;border:none;border-radius:8px;background:var(--ok);c
 .mbtns .save{background:var(--accent);color:#fff;border-color:var(--accent)}
 .mbtns .cancel{background:var(--surface);color:var(--fg)}
 #amsg{font-size:.8rem;margin-top:8px}
+button.rm{border:none;background:transparent;color:var(--muted);font-size:1rem;cursor:pointer;padding:2px 6px;border-radius:6px;line-height:1}
+button.rm:hover{background:var(--critb);color:var(--crit)}
 </style>
 </head>
 <body>
@@ -61,7 +63,7 @@ button.add{padding:9px 14px;border:none;border-radius:8px;background:var(--ok);c
 <div class="hdr"><div><h1>Monitor de Fornecedores</h1><div class="sub">Preços do Walmart buscados automaticamente todo dia.</div></div><button class="add" id="btn-add">+ Cadastrar produto</button></div>
 <div class="tiles"><div class="tile"><div class="n" id="t-total">-</div><div class="l">Produtos</div></div><div class="tile"><div class="n" id="t-ok">-</div><div class="l">OK</div></div><div class="tile"><div class="n" id="t-warn">-</div><div class="l">Atencao</div></div><div class="tile"><div class="n" id="t-crit">-</div><div class="l">Critico</div></div></div>
 <div class="tabs"><button class="tab" id="tab-all" data-t="all">Todos</button><button class="tab" id="tab-in" data-t="in">Em estoque</button><button class="tab" id="tab-out" data-t="out">Fora de estoque</button></div>
-<div class="tw"><table><thead><tr><th>Produto</th><th class="num">Venda</th><th class="num">Custo Walmart</th><th class="num">Lucro</th><th class="num">Margem</th><th>Estoque</th><th>Decisao</th><th>Checado</th></tr></thead><tbody id="rows"><tr><td colspan="8" class="load">Carregando dados ao vivo...</td></tr></tbody></table></div>
+<div class="tw"><table><thead><tr><th>Produto</th><th class="num">Venda</th><th class="num">Custo Walmart</th><th class="num">Lucro</th><th class="num">Margem</th><th>Estoque</th><th>Decisao</th><th>Checado</th><th></th></tr></thead><tbody id="rows"><tr><td colspan="8" class="load">Carregando dados ao vivo...</td></tr></tbody></table></div>
 <div class="foot" id="foot"></div>
 </div>
 <div class="ov" id="ov" hidden><div class="modal">
@@ -101,15 +103,15 @@ function render(){
   var m=p.amazon_price?Math.round(Number(p.last_profit)/Number(p.amazon_price)*100):null;
   var lbl=p.last_decision==='CRITICO'?'CRÍTICO':p.last_decision==='ATENCAO'?'ATENÇÃO':'OK';
   var lk=p.supplier_url?' <a href="'+p.supplier_url+'" target="_blank">link</a>':'';
-  h+='<tr class="'+(p.last_decision||'OK')+'"><td><span class="prod">'+esc(p.name)+lk+'</span><span class="sku">'+esc(p.amazon_sku||'')+'</span></td><td class="num">'+money(p.amazon_price)+'</td><td class="num">'+money(p.supplier_price)+'</td><td class="num">'+money(p.last_profit)+'</td><td class="num">'+(m==null?'-':m+'%')+'</td><td><span class="'+(p.in_stock?'stkin':'stkout')+'">'+(p.in_stock?'EM ESTOQUE':'SEM ESTOQUE')+'</span></td><td><span class="pill'+(p.last_decision||'OK')+'">'+lbl+'</span><div class="acao">'+esc(p.last_acao||'')+'</div></td><td class="num">'+when(p.last_checked_at)+'</td></tr>';
+  h+='<tr class="'+(p.last_decision||'OK')+'"><td><span class="prod">'+esc(p.name)+lk+'</span><span class="sku">'+esc(p.amazon_sku||'')+'</span></td><td class="num">'+money(p.amazon_price)+'</td><td class="num">'+money(p.supplier_price)+'</td><td class="num">'+money(p.last_profit)+'</td><td class="num">'+(m==null?'-':m+'%')+'</td><td><span class="'+(p.in_stock?'stkin':'stkout')+'">'+(p.in_stock?'EM ESTOQUE':'SEM ESTOQUE')+'</span></td><td><span class="pill'+(p.last_decision||'OK')+'">'+lbl+'</span><div class="acao">'+esc(p.last_acao||'')+'</div></td><td class="num">'+when(p.last_checked_at)+'</td><td><button class="rm" data-id="'+esc(p.id)+'" data-name="'+esc(p.name)+'" title="Remover">✕</button></td></tr>';
  });
- document.getElementById('rows').innerHTML=h||'<tr><td colspan="8" style="padding:24px;text-align:center;color:var(--muted)">Nenhum produto nessa aba.</td></tr>';
+ document.getElementById('rows').innerHTML=h||'<tr><td colspan="9" style="padding:24px;text-align:center;color:var(--muted)">Nenhum produto nessa aba.</td></tr>';
  var dts=DATA.map(function(p){return p.last_checked_at}).filter(Boolean).sort();
  document.getElementById('foot').textContent='Última busca automática: '+when(dts[dts.length-1])+' · o robô confere o Walmart todo dia e te avisa por e-mail.';
 }
 function load(){
  fetch(API).then(function(r){return r.json()}).then(function(j){DATA=Array.isArray(j)?j:[];render()}).catch(function(e){
-  document.getElementById('rows').innerHTML='<tr><td colspan="8" style="padding:20px;text-align:center;color:var(--crit)">Erro ao carregar dados. Tentando de novo...</td></tr>';
+  document.getElementById('rows').innerHTML='<tr><td colspan="9" style="padding:20px;text-align:center;color:var(--crit)">Erro ao carregar dados. Tentando de novo...</td></tr>';
  });
 }
 Array.prototype.forEach.call(document.querySelectorAll('.tab'),function(b){b.onclick=function(){tab=b.getAttribute('data-t');Array.prototype.forEach.call(document.querySelectorAll('.tab'),function(x){x.classList.remove('on')});b.classList.add('on');render()}});
@@ -124,6 +126,16 @@ function closeAdd(){document.getElementById('ov').hidden=true;}
 document.getElementById('btn-add').onclick=openAdd;
 document.getElementById('f-cancel').onclick=closeAdd;
 document.getElementById('ov').addEventListener('click',function(e){if(e.target.id==='ov')closeAdd()});
+var DEL='https://wimfpytgnokyjtomhmlz.supabase.co/functions/v1/delete-product';
+document.getElementById('rows').addEventListener('click',function(e){
+ var b=e.target.closest('.rm');if(!b)return;
+ var id=b.getAttribute('data-id'),nm=b.getAttribute('data-name');
+ if(!confirm('Remover \"'+nm+'\" do monitor?'))return;
+ b.disabled=true;b.textContent='...';
+ fetch(DEL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:'123play',id:id})}).then(function(r){return r.json()}).then(function(j){
+  if(j&&j.ok){load();}else{alert('Erro ao remover: '+((j&&j.error)||'tente de novo'));b.disabled=false;b.textContent='✕';}
+ }).catch(function(){alert('Erro de conexão.');b.disabled=false;b.textContent='✕';});
+});
 document.getElementById('f-save').onclick=function(){
  var msg=document.getElementById('amsg');
  var payload={pass:'123play',
