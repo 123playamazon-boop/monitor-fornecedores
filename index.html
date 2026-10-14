@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Monitor de Fornecedores</title>
 <style>
+[hidden]{display:none!important}
 :root{--bg:#f4f5f7;--surface:#fff;--line:#dcdfe6;--fg:#1c2230;--muted:#5b6475;--accent:#3b6cff;--ok:#128a4e;--okb:#e3f5ea;--warn:#9a6b00;--warnb:#fdf1d6;--crit:#c02a2a;--critb:#fbe3e3}
 @media(prefers-color-scheme:dark){:root{--bg:#0e1118;--surface:#171b24;--line:#2b313d;--fg:#e7ebf2;--muted:#9aa3b2;--accent:#5e86ff;--ok:#3ec77e;--okb:#122a1e;--warn:#e8b64a;--warnb:#2d2411;--crit:#ff6b6b;--critb:#2d1515;color-scheme:dark}}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,sans-serif}
@@ -36,27 +37,25 @@ tr.OK{border-left:4px solid var(--ok)}tr.ATENCAO{border-left:4px solid var(--war
 input{width:100%;padding:9px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);margin:8px 0}
 button.go{width:100%;padding:9px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-weight:700;cursor:pointer}
 .foot{color:var(--muted);font-size:.74rem;margin-top:12px}
+.load{color:var(--muted);font-size:.85rem;padding:16px 0}
 </style>
 </head>
 <body>
 <div class="gate" id="gate"><div class="box"><h1>Monitor de Fornecedores</h1><p class="sub">Acesso do time 123Play</p><input id="pw" type="password" placeholder="senha"><button class="go" id="go">Entrar</button><div id="err" style="color:var(--crit);font-size:.8rem;margin-top:6px"></div></div></div>
 <div class="wrap" id="app" hidden>
-<h1>Monitor de Fornecedores</h1><div class="sub">Preços do Walmart (última busca automática).</div>
+<h1>Monitor de Fornecedores</h1><div class="sub">Preços do Walmart buscados automaticamente todo dia.</div>
 <div class="tiles"><div class="tile"><div class="n" id="t-total">-</div><div class="l">Produtos</div></div><div class="tile"><div class="n" id="t-ok">-</div><div class="l">OK</div></div><div class="tile"><div class="n" id="t-warn">-</div><div class="l">Atencao</div></div><div class="tile"><div class="n" id="t-crit">-</div><div class="l">Critico</div></div></div>
 <div class="tabs"><button class="tab" id="tab-all" data-t="all">Todos</button><button class="tab" id="tab-in" data-t="in">Em estoque</button><button class="tab" id="tab-out" data-t="out">Fora de estoque</button></div>
-<div class="tw"><table><thead><tr><th>Produto</th><th class="num">Venda</th><th class="num">Custo Walmart</th><th class="num">Lucro</th><th class="num">Margem</th><th>Estoque</th><th>Decisao</th><th>Checado</th></tr></thead><tbody id="rows"></tbody></table></div>
+<div class="tw"><table><thead><tr><th>Produto</th><th class="num">Venda</th><th class="num">Custo Walmart</th><th class="num">Lucro</th><th class="num">Margem</th><th>Estoque</th><th>Decisao</th><th>Checado</th></tr></thead><tbody id="rows"><tr><td colspan="8" class="load">Carregando dados ao vivo...</td></tr></tbody></table></div>
 <div class="foot" id="foot"></div>
 </div>
 <script>
-var DATA = [
- {"name":"Air Fryer 6qt","supplier_url":"https://www.walmart.com/ip/16101019328","amazon_sku":"AF6Q-GEN","amazon_price":109,"supplier_price":59,"in_stock":true,"last_decision":"OK","last_acao":"Nada a fazer","last_profit":17.15,"last_checked_at":"2026-10-14T19:48:45Z"},
- {"name":"Air Fryer 3qt","supplier_url":"https://www.walmart.com/ip/16102721121","amazon_sku":"AF3Q-GEN","amazon_price":94.99,"supplier_price":44.96,"in_stock":true,"last_decision":"OK","last_acao":"Nada a fazer","last_profit":22.28,"last_checked_at":"2026-10-14T19:48:47Z"},
- {"name":"Cafeteira Single Serve","supplier_url":"https://www.walmart.com/ip/3479324898","amazon_sku":"CM-GEN","amazon_price":119.99,"supplier_price":79,"in_stock":true,"last_decision":"OK","last_acao":"Nada a fazer","last_profit":9.49,"last_checked_at":"2026-10-14T19:48:50Z"}
-];
+var API='https://wimfpytgnokyjtomhmlz.supabase.co/functions/v1/products-json';
+var DATA=[];
 var tab='all';
 function esc(x){return String(x==null?'':x).replace(/[&<>]/g,function(c){return c==='&'?'&amp;':c==='<'?'&lt;':'&gt;'})}
 function money(v){return (v==null||isNaN(Number(v)))?'-':'$'+Number(v).toFixed(2)}
-function when(t){if(!t)return '-';var d=new Date(t);return d.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}
+function when(t){if(!t)return '-';var d=new Date(t);return isNaN(d)?'-':d.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}
 function render(){
  var inC=DATA.filter(function(p){return p.in_stock}).length;
  document.getElementById('tab-in').textContent='Em estoque ('+inC+')';
@@ -81,11 +80,17 @@ function render(){
  var dts=DATA.map(function(p){return p.last_checked_at}).filter(Boolean).sort();
  document.getElementById('foot').textContent='Última busca automática: '+when(dts[dts.length-1])+' · o robô confere o Walmart todo dia e te avisa por e-mail.';
 }
+function load(){
+ fetch(API).then(function(r){return r.json()}).then(function(j){DATA=Array.isArray(j)?j:[];render()}).catch(function(e){
+  document.getElementById('rows').innerHTML='<tr><td colspan="8" style="padding:20px;text-align:center;color:var(--crit)">Erro ao carregar dados. Tentando de novo...</td></tr>';
+ });
+}
 Array.prototype.forEach.call(document.querySelectorAll('.tab'),function(b){b.onclick=function(){tab=b.getAttribute('data-t');Array.prototype.forEach.call(document.querySelectorAll('.tab'),function(x){x.classList.remove('on')});b.classList.add('on');render()}});
-function unlock(){document.getElementById('gate').hidden=true;document.getElementById('app').hidden=false;document.getElementById('tab-all').classList.add('on');render()}
+function unlock(){document.getElementById('gate').hidden=true;document.getElementById('app').hidden=false;document.getElementById('tab-all').classList.add('on');load();}
 try{if(sessionStorage.getItem('mf')==='1')unlock()}catch(e){}
 document.getElementById('go').onclick=function(){if(document.getElementById('pw').value==='123play'){try{sessionStorage.setItem('mf','1')}catch(e){}unlock()}else{document.getElementById('err').textContent='Senha incorreta.'}};
 document.getElementById('pw').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('go').click()});
+setInterval(function(){if(!document.getElementById('app').hidden)load()},300000);
 </script>
 </body>
 </html>
