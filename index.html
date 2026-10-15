@@ -55,6 +55,11 @@ button.add{padding:9px 14px;border:none;border-radius:8px;background:var(--ok);c
 #amsg{font-size:.8rem;margin-top:8px}
 button.rm{border:none;background:transparent;color:var(--muted);font-size:1rem;cursor:pointer;padding:2px 6px;border-radius:6px;line-height:1}
 button.rm:hover{background:var(--critb);color:var(--crit)}
+.kittag{background:var(--accent);color:#fff;font-size:.6rem;font-weight:800;padding:1px 5px;border-radius:4px;margin-left:6px;vertical-align:middle;letter-spacing:.03em}
+.kitlist{margin-top:5px;font-size:.74rem;color:var(--muted)}
+.kitit{padding:1px 0}
+.kitit a{color:var(--muted);font-size:.7rem;margin-left:4px}
+.kittot{font-weight:700;color:var(--fg);margin-top:2px}
 .kchk{display:flex;align-items:center;gap:7px;margin:4px 0 10px;font-size:.82rem;font-weight:700;color:var(--fg);cursor:pointer}
 .kchk input{width:auto;margin:0}
 .kitem{border:1px solid var(--line);border-radius:8px;padding:8px;margin-bottom:8px;background:var(--bg)}
@@ -116,8 +121,12 @@ function render(){
  list.forEach(function(p){
   var m=p.amazon_price?Math.round(Number(p.last_profit)/Number(p.amazon_price)*100):null;
   var lbl=p.last_decision==='CRITICO'?'CRÍTICO':p.last_decision==='ATENCAO'?'ATENÇÃO':'OK';
-  var lk=p.supplier_url?' <a href="'+p.supplier_url+'" target="_blank">link</a>':'';
-  h+='<tr class="'+(p.last_decision||'OK')+'"><td><span class="prod">'+esc(p.name)+lk+'</span><span class="sku">'+esc(p.amazon_sku||'')+'</span></td><td class="num">'+money(p.amazon_price)+'</td><td class="num">'+money(p.supplier_price)+'</td><td class="num">'+money(p.last_profit)+'</td><td class="num">'+(m==null?'-':m+'%')+'</td><td><span class="'+(p.in_stock?'stkin':'stkout')+'">'+(p.in_stock?'EM ESTOQUE':'SEM ESTOQUE')+'</span></td><td><span class="pill'+(p.last_decision||'OK')+'">'+lbl+'</span><div class="acao">'+esc(p.last_acao||'')+'</div></td><td class="num">'+when(p.last_checked_at)+'</td><td><button class="rm" data-id="'+esc(p.id)+'" data-name="'+esc(p.name)+'" title="Remover">✕</button></td></tr>';
+  var isKit=Array.isArray(p.kit_items)&&p.kit_items.length;
+  var lk=(!isKit&&p.supplier_url)?' <a href="'+p.supplier_url+'" target="_blank">link</a>':'';
+  var tag=isKit?' <span class="kittag">KIT</span>':'';
+  var kb='';
+  if(isKit){kb='<div class="kitlist">';p.kit_items.forEach(function(it){var il=it.supplier_url?' <a href="'+it.supplier_url+'" target="_blank">link</a>':'';kb+='<div class="kitit">• '+esc(it.label)+' — '+money(it.price)+il+(it.in_stock===false?' <span class="stkout">sem estoque</span>':'')+'</div>';});kb+='<div class="kittot">Total: '+money(p.supplier_price)+'</div></div>';}
+  h+='<tr class="'+(p.last_decision||'OK')+'"><td><span class="prod">'+esc(p.name)+tag+lk+'</span><span class="sku">'+esc(p.amazon_sku||'')+'</span>'+kb+'</td><td class="num">'+money(p.amazon_price)+'</td><td class="num">'+money(p.supplier_price)+'</td><td class="num">'+money(p.last_profit)+'</td><td class="num">'+(m==null?'-':m+'%')+'</td><td><span class="'+(p.in_stock?'stkin':'stkout')+'">'+(p.in_stock?'EM ESTOQUE':'SEM ESTOQUE')+'</span></td><td><span class="pill'+(p.last_decision||'OK')+'">'+lbl+'</span><div class="acao">'+esc(p.last_acao||'')+'</div></td><td class="num">'+when(p.last_checked_at)+'</td><td><button class="rm" data-id="'+esc(p.id)+'" data-name="'+esc(p.name)+'" title="Remover">✕</button></td></tr>';
  });
  document.getElementById('rows').innerHTML=h||'<tr><td colspan="9" style="padding:24px;text-align:center;color:var(--muted)">Nenhum produto nessa aba.</td></tr>';
  var dts=DATA.map(function(p){return p.last_checked_at}).filter(Boolean).sort();
